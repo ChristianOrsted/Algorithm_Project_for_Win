@@ -1,0 +1,28 @@
+# 所有文本文件统一使用 LF
+* text=auto eol=lf
+
+# Python 文件
+*.py text eol=lf
+
+# 配置文件
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.txt text eol=lf
+*.md text eol=lf
+
+# Shell 脚本
+*.sh text eol=lf
+
+# Windows 批处理（如果有）
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 二进制文件
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.pt binary
+*.pth binary
+*.pkl binary
+*.pyc binary
