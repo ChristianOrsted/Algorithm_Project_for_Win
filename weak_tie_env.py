@@ -3,9 +3,6 @@ import numpy as np
 
 
 class WeakTieStarCraft2Env(StarCraft2Env):
-    """
-    继承自 SMAC 环境，增加获取单位绝对坐标的接口，供 WeakTieGraph 模块使用。
-    """
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

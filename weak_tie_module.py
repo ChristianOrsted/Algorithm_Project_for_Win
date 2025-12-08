@@ -6,10 +6,6 @@ from scipy.spatial.distance import cdist
 
 
 class WeakTieGraph:
-    """
-    [论文 3.3 节] 弱联系图构建模块
-    负责计算 mask_beta 和 key_agent_idx
-    """
 
     def __init__(self, n_agents, obs_range=15.0, alpha_quantile=0.3):
         self.n_agents = n_agents

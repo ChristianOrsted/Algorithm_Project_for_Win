@@ -46,12 +46,6 @@ def init_weights(m):
 
 
 class WeakTieAgent:
-    """
-    [论文算法 2 复现 - 极速版]
-    - 优化 1: 向量化 Counterfactual Baseline 计算
-    - 优化 2: 向量化 PPO Update Loop (Time-Folding)，消除 Python 循环开销
-    - 更新: 支持保存和加载胜率 (win_rate)
-    """
 
     def __init__(self, n_agents, obs_dim, act_dim, hidden_dim=64, lr=5e-4,
                  gamma=0.99, gae_lambda=0.95, clip_param=0.2,
@@ -71,19 +65,20 @@ class WeakTieAgent:
 
         self.obs_norm = RunningMeanStd(shape=(obs_dim,))
 
-        # Independent Actors
+        # 独立动作网络，因为每个智能体在此算法中是独立的
         self.actors = nn.ModuleList([
             WeakTieNet(obs_dim, act_dim, hidden_dim, act_dim, use_actions=False).to(self.device)
             for _ in range(n_agents)
         ])
 
-        # Shared Critic
+        # 共享评论，所有智能体的评论加入全局
         self.critic = WeakTieNet(obs_dim, act_dim, hidden_dim, 1, use_actions=True).to(self.device)
 
         for actor in self.actors:
             actor.apply(init_weights)
         self.critic.apply(init_weights)
 
+        # 统一的优化器，所有网络联合优化
         all_params = list(self.critic.parameters())
         for actor in self.actors:
             all_params += list(actor.parameters())
@@ -99,6 +94,7 @@ class WeakTieAgent:
         norm_obs = (obs - self.obs_norm.mean) / (np.sqrt(self.obs_norm.var) + 1e-8)
         return norm_obs
 
+    # 在环境交互时选择动作
     def select_action(self, obs, avail_actions, mask, key_idx, actor_hidden, deterministic=False):
         obs = np.array(obs)
         avail_actions = np.array(avail_actions)
@@ -111,6 +107,7 @@ class WeakTieAgent:
             mask = mask[None, ...]
             key_idx = key_idx[None, ...]
 
+        # 数据预处理
         obs = self.normalize_obs(obs, update_stats=True)
 
         obs_t = torch.FloatTensor(obs).to(self.device)
@@ -124,6 +121,7 @@ class WeakTieAgent:
 
         with torch.no_grad():
             for i in range(self.n_agents):
+                # 前向传播
                 logits, h_new = self.actors[i](
                     local_obs=obs_t[:, i, :],
                     global_obs=obs_t,
@@ -132,6 +130,8 @@ class WeakTieAgent:
                     hidden_state=actor_hidden[:, i, :],
                     local_act=None, global_act=None
                 )
+
+                # 选取可用动作
                 avail_i = avail_t[:, i, :]
                 logits[avail_i == 0] = -1e10
                 probs = F.softmax(logits, dim=-1)

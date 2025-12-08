@@ -9,17 +9,11 @@ from weak_tie_module import WeakTieGraph
 
 # 过滤警告并设置 SC2 路径
 warnings.filterwarnings('ignore', category=FutureWarning)
-os.environ["SC2PATH"] = "/root/autodl-tmp/StarCraftII"
+os.environ["SC2PATH"] = "D:\Program Files (x86)\StarCraft II"
 
 
 def evaluate_model_1000(model_path, map_name="1c3s5z", n_episodes=1000, log_file="./log/test_log_1c3s5z.txt"):
-    """
-    评估模型性能 (1000局测试版本)
-    :param model_path: 模型路径
-    :param map_name: 地图名称
-    :param n_episodes: 测试局数 (默认1000)
-    :param log_file: 日志文件路径
-    """
+
     # 创建日志目录
     os.makedirs(os.path.dirname(log_file), exist_ok=True)
     
@@ -118,13 +112,13 @@ def evaluate_model_1000(model_path, map_name="1c3s5z", n_episodes=1000, log_file
                 # 计算图结构
                 mask_beta, key_agent_idx = wt_graph.compute_graph_info(positions, alive_mask)
                 
-                # 决策 (确定性策略)
+                # 开启决定性的策略，防止智能体随机探索
                 actions, probs, actor_hidden = agent.select_action(
                     obs, avail_actions, mask_beta, key_agent_idx, actor_hidden,
                     deterministic=True
                 )
                 
-                # 环境步进
+                # 游戏步骤继续推进
                 reward, terminated, info = env.step(actions)
                 obs = env.get_obs()
                 episode_reward += reward
