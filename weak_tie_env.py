@@ -3,6 +3,9 @@ import numpy as np
 
 
 class WeakTieStarCraft2Env(StarCraft2Env):
+    """
+    继承自 SMAC 环境，增加获取单位绝对坐标的接口，供 WeakTieGraph 模块使用。
+    """
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -25,7 +28,7 @@ class WeakTieStarCraft2Env(StarCraft2Env):
         """
         positions = []
         for tag in self.agent_tags:
-            if tag in self.agents:
+            if tag in self.agents:  #如果单位活着
                 unit = self.agents[tag]
                 # 直接访问 PySC2 Unit 对象的 pos 属性
                 positions.append([unit.pos.x, unit.pos.y])
