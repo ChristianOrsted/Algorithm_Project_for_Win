@@ -190,61 +190,61 @@ def run_episode(env, agent, wt_graph, train_mode=True):
 **详细解析**：对应论文中的A。这是智能体输出的离散指令，比如“向北移动”、“攻击ID为3的敌人”或“停止”。代码中使用 F.softmax 输出动作概率分布，然后采样得到具体的动作索引。
 ```python
 def select_action(self, obs, avail_actions, mask, key_idx, actor_hidden, deterministic=False):
-        obs = np.array(obs)
-        avail_actions = np.array(avail_actions)
-        mask = np.array(mask)
-        key_idx = np.array(key_idx)
+    obs = np.array(obs)
+    avail_actions = np.array(avail_actions)
+    mask = np.array(mask)
+    key_idx = np.array(key_idx)
 
-        if obs.ndim == 2:
-            obs = obs[None, ...]
-            avail_actions = avail_actions[None, ...]
-            mask = mask[None, ...]
-            key_idx = key_idx[None, ...]
+    if obs.ndim == 2:
+        obs = obs[None, ...]
+        avail_actions = avail_actions[None, ...]
+        mask = mask[None, ...]
+        key_idx = key_idx[None, ...]
 
-        # 数据预处理
-        obs = self.normalize_obs(obs, update_stats=True)
+    # 数据预处理
+    obs = self.normalize_obs(obs, update_stats=True)
 
-        obs_t = torch.FloatTensor(obs).to(self.device)
-        avail_t = torch.FloatTensor(avail_actions).to(self.device)
-        mask_t = torch.FloatTensor(mask).to(self.device)
-        key_t = torch.LongTensor(key_idx).to(self.device)
+    obs_t = torch.FloatTensor(obs).to(self.device)
+    avail_t = torch.FloatTensor(avail_actions).to(self.device)
+    mask_t = torch.FloatTensor(mask).to(self.device)
+    key_t = torch.LongTensor(key_idx).to(self.device)
 
-        actions_list = []
-        probs_list = []
-        new_hidden_list = []
+    actions_list = []
+    probs_list = []
+    new_hidden_list = []
 
-        with torch.no_grad():
-            for i in range(self.n_agents):
-                # 前向传播
-                logits, h_new = self.actors[i](
-                    local_obs=obs_t[:, i, :],
-                    global_obs=obs_t,
-                    mask=mask_t[:, i, :],
-                    key_idx=key_t,
-                    hidden_state=actor_hidden[:, i, :],
-                    local_act=None, global_act=None
-                )
+    with torch.no_grad():
+        for i in range(self.n_agents):
+            # 前向传播
+            logits, h_new = self.actors[i](
+                local_obs=obs_t[:, i, :],
+                global_obs=obs_t,
+                mask=mask_t[:, i, :],
+                key_idx=key_t,
+                hidden_state=actor_hidden[:, i, :],
+                local_act=None, global_act=None
+            )
 
-                # 选取可用动作
-                avail_i = avail_t[:, i, :]
-                logits[avail_i == 0] = -1e10
-                probs = F.softmax(logits, dim=-1)
+            # 选取可用动作
+            avail_i = avail_t[:, i, :]
+            logits[avail_i == 0] = -1e10
+            probs = F.softmax(logits, dim=-1)
 
-                if deterministic:
-                    action = probs.argmax(dim=-1)
-                else:
-                    dist = torch.distributions.Categorical(probs)
-                    action = dist.sample()
+            if deterministic:
+                action = probs.argmax(dim=-1)
+            else:
+                dist = torch.distributions.Categorical(probs)
+                action = dist.sample()
 
-                actions_list.append(action)
-                probs_list.append(probs)
-                new_hidden_list.append(h_new)
+            actions_list.append(action)
+            probs_list.append(probs)
+            new_hidden_list.append(h_new)
 
-        actions = torch.stack(actions_list, dim=1)
-        probs = torch.stack(probs_list, dim=1)
-        new_hidden = torch.stack(new_hidden_list, dim=1)
+    actions = torch.stack(actions_list, dim=1)
+    probs = torch.stack(probs_list, dim=1)
+    new_hidden = torch.stack(new_hidden_list, dim=1)
 
-        return actions.cpu().numpy()[0], probs.cpu().numpy()[0], new_hidden
+    return actions.cpu().numpy()[0], probs.cpu().numpy()[0], new_hidden
 ```
 
 ### 6. 奖励 (Reward) —— 行为的反馈信号
@@ -290,20 +290,20 @@ $$
 **代码体现**：denominator = D_i + D_j + W_ij - 2，然后取倒数 1.0 / denominator。这完全对应论文中的公式 (8)。
 ```python
 for i in range(n):
-            for j in range(n):
-                if i == j:
-                    H[i][j] = 1.0   # 自己对自己强度为 1
-                    continue
-                if i not in valid_indices or j not in valid_indices:
-                    H[i][j] = 0.0   # 死人强度为 0
-                    continue
+    for j in range(n):
+        if i == j:
+            H[i][j] = 1.0   # 自己对自己强度为 1
+            continue
+        if i not in valid_indices or j not in valid_indices:
+            H[i][j] = 0.0   # 死人强度为 0
+            continue
 
-                D_i, D_j = degrees[i], degrees[j]   # 度
-                W_ij = path_lengths[i].get(j, 9999)  # 路径长度 (无穷大用 9999 代替)
-                denominator = D_i + D_j + W_ij - 2   # 论文公式
-                strength = 1.0 / denominator if denominator > 0 else 0.0  # 强度倒数，因为距离越大，联系越弱
-                H[i][j] = strength
-                tie_values.append(strength)
+        D_i, D_j = degrees[i], degrees[j]   # 度
+        W_ij = path_lengths[i].get(j, 9999)  # 路径长度 (无穷大用 9999 代替)
+        denominator = D_i + D_j + W_ij - 2   # 论文公式
+        strength = 1.0 / denominator if denominator > 0 else 0.0  # 强度倒数，因为距离越大，联系越弱
+        H[i][j] = strength
+        tie_values.append(strength)
 ```
 
 ### 3.	筛选弱联系与关键智能体 (Filtering & Key Agent)
@@ -335,56 +335,56 @@ for i in range(n):
 **Key (关键)**：直接提取 key_agent_idx 对应的那一份观测数据。
 ```python
 def forward(self, local_obs, global_obs, mask_beta, key_idx, local_act=None, global_act=None):
-        batch_size = local_obs.shape[0]
+    batch_size = local_obs.shape[0]
 
-        # mask 维度调整: (B, N) -> (B, N, 1)，为了能和 (B, N, Dim) 的 obs 相乘
-        mask = mask_beta.unsqueeze(-1)  # (B, N, 1)
-        sum_mask = mask.sum(dim=1) + 1e-6  # 分母，用于求平均，加 1e-6 防止除以 0
+    # mask 维度调整: (B, N) -> (B, N, 1)，为了能和 (B, N, Dim) 的 obs 相乘
+    mask = mask_beta.unsqueeze(-1)  # (B, N, 1)
+    sum_mask = mask.sum(dim=1) + 1e-6  # 分母，用于求平均，加 1e-6 防止除以 0
 
-        # --- 1. 弱联系聚合 (Weak Tie Aggregation) ---
-        # 严格执行过滤：只聚合 mask=1 (弱联系) 的邻居，乘以 mask 后，强联系队友的信息变成 0
-        weak_obs_masked = global_obs * mask
-        # 求和并除以数量，得到弱联系队友的平均信息
-        weak_obs_agg = weak_obs_masked.sum(dim=1) / sum_mask
+    # --- 1. 弱联系聚合 (Weak Tie Aggregation) ---
+    # 严格执行过滤：只聚合 mask=1 (弱联系) 的邻居，乘以 mask 后，强联系队友的信息变成 0
+    weak_obs_masked = global_obs * mask
+    # 求和并除以数量，得到弱联系队友的平均信息
+    weak_obs_agg = weak_obs_masked.sum(dim=1) / sum_mask
 
-        # Key Agent (Obs)
-        feat_dim = global_obs.shape[2]
-        idx_exp = key_idx.view(batch_size, 1, 1).expand(-1, 1, feat_dim)
-        key_obs = torch.gather(global_obs, 1, idx_exp).squeeze(1)
+    # Key Agent (Obs)
+    feat_dim = global_obs.shape[2]
+    idx_exp = key_idx.view(batch_size, 1, 1).expand(-1, 1, feat_dim)
+    key_obs = torch.gather(global_obs, 1, idx_exp).squeeze(1)
 
-        # --- 2. 弱联系聚合 (Act) ---
-        if self.use_actions:
-            # critic模式 输入 (Obs + Act)
-            if local_act is None or global_act is None:
-                raise ValueError("Critic mode requires actions!")
+    # --- 2. 弱联系聚合 (Act) ---
+    if self.use_actions:
+        # critic模式 输入 (Obs + Act)
+        if local_act is None or global_act is None:
+            raise ValueError("Critic mode requires actions!")
 
-            # m_i 包含 beta * a^{-i}
-            weak_act_masked = global_act * mask
-            weak_act_agg = weak_act_masked.sum(dim=1) / sum_mask   # 求和并除以数量，得到弱联系队友的平均信息
+        # m_i 包含 beta * a^{-i}
+        weak_act_masked = global_act * mask
+        weak_act_agg = weak_act_masked.sum(dim=1) / sum_mask   # 求和并除以数量，得到弱联系队友的平均信息
 
-            # Key Agent (Act)
-            act_dim = global_act.shape[2]
-            idx_act_exp = key_idx.view(batch_size, 1, 1).expand(-1, 1, act_dim)
-            key_act = torch.gather(global_act, 1, idx_act_exp).squeeze(1)
+        # Key Agent (Act)
+        act_dim = global_act.shape[2]
+        idx_act_exp = key_idx.view(batch_size, 1, 1).expand(-1, 1, act_dim)
+        key_act = torch.gather(global_act, 1, idx_act_exp).squeeze(1)
 
-            # 拼接: [Local(O+A), Weak(O+A), Key(O+A)]
-            # 1. 处理自己的信息：把自己看到的(Obs)和自己做的(Act)拼起来
-            local_feat = torch.cat([local_obs, local_act], dim=-1)
-            # 2. 处理弱联系队友的信息：把队友看到的和队友做的拼起来，然后取平均
-            weak_feat = torch.cat([weak_obs_agg, weak_act_agg], dim=-1)
-            # 3. keyagent同理
-            key_feat = torch.cat([key_obs, key_act], dim=-1)
-        else:
-            # Actor 模式 输入 (Obs)
-            local_feat = local_obs
-            weak_feat = weak_obs_agg
-            key_feat = key_obs
+        # 拼接: [Local(O+A), Weak(O+A), Key(O+A)]
+        # 1. 处理自己的信息：把自己看到的(Obs)和自己做的(Act)拼起来
+        local_feat = torch.cat([local_obs, local_act], dim=-1)
+        # 2. 处理弱联系队友的信息：把队友看到的和队友做的拼起来，然后取平均
+        weak_feat = torch.cat([weak_obs_agg, weak_act_agg], dim=-1)
+        # 3. keyagent同理
+        key_feat = torch.cat([key_obs, key_act], dim=-1)
+    else:
+        # Actor 模式 输入 (Obs)
+        local_feat = local_obs
+        weak_feat = weak_obs_agg
+        key_feat = key_obs
 
-        # --- 3. 融合 ---
-        #把 [自己信息, 弱联系队友信息, Key Agent信息] 拼在一起
-        combined = torch.cat([local_feat, weak_feat, key_feat], dim=-1)
-        out = self.fc(combined)
-        return self.layer_norm(out)
+    # --- 3. 融合 ---
+    #把 [自己信息, 弱联系队友信息, Key Agent信息] 拼在一起
+    combined = torch.cat([local_feat, weak_feat, key_feat], dim=-1)
+    out = self.fc(combined)
+    return self.layer_norm(out)
 ```
 
 ### 2. 拼接与记忆
@@ -435,27 +435,27 @@ class WeakTieNet(nn.Module):
 
 ```python
 with torch.no_grad():
-            for i in range(self.n_agents):
-                # 前向传播
-                logits, h_new = self.actors[i](
-                    local_obs=obs_t[:, i, :],
-                    global_obs=obs_t,
-                    mask=mask_t[:, i, :],
-                    key_idx=key_t,
-                    hidden_state=actor_hidden[:, i, :],
-                    local_act=None, global_act=None
-                )
+    for i in range(self.n_agents):
+        # 前向传播
+        logits, h_new = self.actors[i](
+            local_obs=obs_t[:, i, :],
+            global_obs=obs_t,
+            mask=mask_t[:, i, :],
+            key_idx=key_t,
+            hidden_state=actor_hidden[:, i, :],
+            local_act=None, global_act=None
+        )
 
-                # 选取可用动作
-                avail_i = avail_t[:, i, :]
-                logits[avail_i == 0] = -1e10
-                probs = F.softmax(logits, dim=-1)
+        # 选取可用动作
+        avail_i = avail_t[:, i, :]
+        logits[avail_i == 0] = -1e10
+        probs = F.softmax(logits, dim=-1)
 
-                if deterministic:
-                    action = probs.argmax(dim=-1)
-                else:
-                    dist = torch.distributions.Categorical(probs)
-                    action = dist.sample()
+        if deterministic:
+            action = probs.argmax(dim=-1)
+        else:
+            dist = torch.distributions.Categorical(probs)
+            action = dist.sample()
 ```
 
 ## 第三阶段：交互与数据收集 (Interaction)
@@ -480,14 +480,14 @@ def get_current_entropy(episode):
 
 ```python
 if train_mode:
-            episode_buffer['obs'].append([obs])
-            episode_buffer['acts'].append([actions])
-            episode_buffer['rewards'].append([[shaped_reward] * len(actions)])
-            episode_buffer['dones'].append([[float(terminated)] * len(actions)])
-            episode_buffer['avails'].append([avail_actions])
-            episode_buffer['probs'].append([probs])
-            episode_buffer['masks'].append([mask_beta])
-            episode_buffer['keys'].append([key_agent_idx])
+    episode_buffer['obs'].append([obs])
+    episode_buffer['acts'].append([actions])
+    episode_buffer['rewards'].append([[shaped_reward] * len(actions)])
+    episode_buffer['dones'].append([[float(terminated)] * len(actions)])
+    episode_buffer['avails'].append([avail_actions])
+    episode_buffer['probs'].append([probs])
+    episode_buffer['masks'].append([mask_beta])
+    episode_buffer['keys'].append([key_agent_idx])
 ```
 
 **注意**：为了节省计算，wt_graph 每隔 3 步 (GRAPH_UPDATE_INTERVAL) 才更新一次图结构，中间步复用上一次的结果。
@@ -525,93 +525,93 @@ while not terminated:
 **优势值**：advantages = q_taken - baseline_v。如果结果是正的，说明这一步做对了。
 ```python
 # ==========================
-        # 2. 计算优势函数 (GAE / Advantage)
-        # ==========================
-        with torch.no_grad():  # 计算 Advantage 不需要梯度
-            current_probs_list = []
-            h_init = torch.zeros(BatchSize, self.hidden_dim).to(self.device)
+# 2. 计算优势函数 (GAE / Advantage)
+# ==========================
+with torch.no_grad():  # 计算 Advantage 不需要梯度
+    current_probs_list = []
+    h_init = torch.zeros(BatchSize, self.hidden_dim).to(self.device)
 
-            # 计算当前所有 Actor 的动作概率分布
-            for i in range(self.n_agents):
-                # 使用 Time-Folding 函数批量推理
-                logits_seq = self._forward_network_sequence(
-                    self.actors[i], pad_obs[:, :, i], pad_obs, pad_masks[:, :, i], pad_keys, h_init
-                )
-                logits_seq[pad_avails[:, :, i] == 0] = -1e10
-                current_probs_list.append(F.softmax(logits_seq, dim=-1))
-            current_probs = torch.stack(current_probs_list, dim=2)  # [B, T, N, ActDim]
+    # 计算当前所有 Actor 的动作概率分布
+    for i in range(self.n_agents):
+        # 使用 Time-Folding 函数批量推理
+        logits_seq = self._forward_network_sequence(
+            self.actors[i], pad_obs[:, :, i], pad_obs, pad_masks[:, :, i], pad_keys, h_init
+        )
+        logits_seq[pad_avails[:, :, i] == 0] = -1e10
+        current_probs_list.append(F.softmax(logits_seq, dim=-1))
+    current_probs = torch.stack(current_probs_list, dim=2)  # [B, T, N, ActDim]
 
-            # 准备计算 Critic 值
-            q_taken_list = []
-            critic_hiddens = [torch.zeros(BatchSize, self.hidden_dim).to(self.device) for _ in range(self.n_agents)]
-            # 需要保存 Critic 的 hidden state 历史，因为后面算 Counterfactual Baseline 还要用到
-            critic_history_tensor = torch.zeros(BatchSize, MaxTime, self.n_agents, self.hidden_dim).to(self.device)
+    # 准备计算 Critic 值
+    q_taken_list = []
+    critic_hiddens = [torch.zeros(BatchSize, self.hidden_dim).to(self.device) for _ in range(self.n_agents)]
+    # 需要保存 Critic 的 hidden state 历史，因为后面算 Counterfactual Baseline 还要用到
+    critic_history_tensor = torch.zeros(BatchSize, MaxTime, self.n_agents, self.hidden_dim).to(self.device)
 
-            # 循环时间步计算 Q(s, a) - 实际采取动作的 Q 值，即采取某动作后，智能体期望获得的未来累积折扣奖励。
-            # 动作价值函数
-            for t in range(MaxTime):
-                q_t_list = []
-                for i in range(self.n_agents):
-                    critic_history_tensor[:, t, i] = critic_hiddens[i]  # 存下来
-                    # 调用 Critic 网络进行前向传播
-                    q, h_new = self.critic(
-                        local_obs=pad_obs[:, t, i], global_obs=pad_obs[:, t],
-                        mask=pad_masks[:, t, i], key_idx=pad_keys[:, t],
-                        hidden_state=critic_hiddens[i],
-                        local_act=pad_acts_onehot[:, t, i], global_act=pad_acts_onehot[:, t]
-                    )
-                    critic_hiddens[i] = h_new
-                    q_t_list.append(q)
-                q_taken_list.append(torch.stack(q_t_list, dim=1))
-            # 最终的输出张量，形状是 [BatchSize, MaxTime, N_Agents]。它存储了当前 Batch中所有 Episode、所有时间步、所有智能体的Q_taken值。
-            q_taken = torch.stack(q_taken_list, dim=1).squeeze(-1)
+    # 循环时间步计算 Q(s, a) - 实际采取动作的 Q 值，即采取某动作后，智能体期望获得的未来累积折扣奖励。
+    # 动作价值函数
+    for t in range(MaxTime):
+        q_t_list = []
+        for i in range(self.n_agents):
+            critic_history_tensor[:, t, i] = critic_hiddens[i]  # 存下来
+            # 调用 Critic 网络进行前向传播
+            q, h_new = self.critic(
+                local_obs=pad_obs[:, t, i], global_obs=pad_obs[:, t],
+                mask=pad_masks[:, t, i], key_idx=pad_keys[:, t],
+                hidden_state=critic_hiddens[i],
+                local_act=pad_acts_onehot[:, t, i], global_act=pad_acts_onehot[:, t]
+            )
+            critic_hiddens[i] = h_new
+            q_t_list.append(q)
+        q_taken_list.append(torch.stack(q_t_list, dim=1))
+    # 最终的输出张量，形状是 [BatchSize, MaxTime, N_Agents]。它存储了当前 Batch中所有 Episode、所有时间步、所有智能体的Q_taken值。
+    q_taken = torch.stack(q_taken_list, dim=1).squeeze(-1)
 
-            # Counterfactual Baseline 反事实基线核心逻辑
-            # 论文中为了解决 Credit Assignment (信度分配) 问题，使用了 Counterfactual Baseline。
-            # V(s) = sum_a [ pi(a|s) * Q(s, (a, a_{-i})) ]  V 是 Q 的期望！！！
-            # 状态价值函数
-            # 即: 保持其他队友动作不变，遍历当前 Agent 所有可能的动作，计算期望 Q 值作为 Baseline。
-            baseline_v = torch.zeros_like(q_taken)
-            all_actions_eye = torch.eye(self.act_dim).to(self.device)  # 生成单位矩阵，代表所有可能的动作
-            batch_all_actions = all_actions_eye.unsqueeze(0).repeat(BatchSize, 1, 1).view(-1, self.act_dim)
+    # Counterfactual Baseline 反事实基线核心逻辑
+    # 论文中为了解决 Credit Assignment (信度分配) 问题，使用了 Counterfactual Baseline。
+    # V(s) = sum_a [ pi(a|s) * Q(s, (a, a_{-i})) ]  V 是 Q 的期望！！！
+    # 状态价值函数
+    # 即: 保持其他队友动作不变，遍历当前 Agent 所有可能的动作，计算期望 Q 值作为 Baseline。
+    baseline_v = torch.zeros_like(q_taken)
+    all_actions_eye = torch.eye(self.act_dim).to(self.device)  # 生成单位矩阵，代表所有可能的动作
+    batch_all_actions = all_actions_eye.unsqueeze(0).repeat(BatchSize, 1, 1).view(-1, self.act_dim)
 
-            # 遍历 Time 和 Agent
-            for t in range(MaxTime):
-                base_global_act = pad_acts_onehot[:, t]  # 当前时刻所有人的动作
-                for i in range(self.n_agents):
-                    # 数据复制 (Repeat)，因为我们要并行计算 act_dim 个动作的情况
-                    obs_rep = pad_obs[:, t, i].repeat_interleave(self.act_dim, dim=0)
-                    g_obs_rep = pad_obs[:, t].repeat_interleave(self.act_dim, dim=0)
-                    mask_rep = pad_masks[:, t, i].repeat_interleave(self.act_dim, dim=0)
-                    key_rep = pad_keys[:, t].repeat_interleave(self.act_dim, dim=0)
-                    h_rep = critic_history_tensor[:, t, i].repeat_interleave(self.act_dim, dim=0)
+    # 遍历 Time 和 Agent
+    for t in range(MaxTime):
+        base_global_act = pad_acts_onehot[:, t]  # 当前时刻所有人的动作
+        for i in range(self.n_agents):
+            # 数据复制 (Repeat)，因为我们要并行计算 act_dim 个动作的情况
+            obs_rep = pad_obs[:, t, i].repeat_interleave(self.act_dim, dim=0)
+            g_obs_rep = pad_obs[:, t].repeat_interleave(self.act_dim, dim=0)
+            mask_rep = pad_masks[:, t, i].repeat_interleave(self.act_dim, dim=0)
+            key_rep = pad_keys[:, t].repeat_interleave(self.act_dim, dim=0)
+            h_rep = critic_history_tensor[:, t, i].repeat_interleave(self.act_dim, dim=0)
 
-                    # 构建 Counterfactual Global Action
-                    # 复制一份全局动作
-                    global_act_rep = base_global_act.repeat_interleave(self.act_dim, dim=0).clone()
-                    # 强行修改第 i 个 Agent 的动作为所有可能动作 (batch_all_actions)
-                    global_act_rep[:, i, :] = batch_all_actions
+            # 构建 Counterfactual Global Action
+            # 复制一份全局动作
+            global_act_rep = base_global_act.repeat_interleave(self.act_dim, dim=0).clone()
+            # 强行修改第 i 个 Agent 的动作为所有可能动作 (batch_all_actions)
+            global_act_rep[:, i, :] = batch_all_actions
 
-                    # 批量输入 Critic，一次性计算 B x A 种反事实情况的 Q 值
-                    q_values_flat, _ = self.critic(
-                        local_obs=obs_rep, global_obs=g_obs_rep,
-                        mask=mask_rep, key_idx=key_rep,
-                        hidden_state=h_rep,
-                        local_act=batch_all_actions, global_act=global_act_rep
-                    )
-                    q_values = q_values_flat.view(BatchSize, self.act_dim)
+            # 批量输入 Critic，一次性计算 B x A 种反事实情况的 Q 值
+            q_values_flat, _ = self.critic(
+                local_obs=obs_rep, global_obs=g_obs_rep,
+                mask=mask_rep, key_idx=key_rep,
+                hidden_state=h_rep,
+                local_act=batch_all_actions, global_act=global_act_rep
+            )
+            q_values = q_values_flat.view(BatchSize, self.act_dim)
 
-                    # 加权求平均: V = sum_a ( pi(a) * Q(a) )
-                    baseline_v[:, t, i] = (current_probs[:, t, i] * q_values).sum(dim=-1)
+            # 加权求平均: V = sum_a ( pi(a) * Q(a) )
+            baseline_v[:, t, i] = (current_probs[:, t, i] * q_values).sum(dim=-1)
 
-            # 计算优势: A(s, a) = Q(s, a) - V(s)
-            advantages = q_taken - baseline_v
+    # 计算优势: A(s, a) = Q(s, a) - V(s)
+    advantages = q_taken - baseline_v
 
-            # 计算目标回报 Returns (用于 Critic Loss)
-            # Bellman 方程变体: r + gamma * V(s')
-            # baseline_v[:, 1:] 是下一时刻的 V
-            baseline_v_next = torch.cat([baseline_v[:, 1:], torch.zeros_like(baseline_v[:, :1])], dim=1)
-            returns = pad_rews.squeeze(-1) + self.gamma * baseline_v_next * (1 - pad_dones.squeeze(-1))
+    # 计算目标回报 Returns (用于 Critic Loss)
+    # Bellman 方程变体: r + gamma * V(s')
+    # baseline_v[:, 1:] 是下一时刻的 V
+    baseline_v_next = torch.cat([baseline_v[:, 1:], torch.zeros_like(baseline_v[:, :1])], dim=1)
+    returns = pad_rews.squeeze(-1) + self.gamma * baseline_v_next * (1 - pad_dones.squeeze(-1))
 ```
 
 ### 2. 限制更新幅度 (Clipping)
@@ -654,40 +654,40 @@ ent_loss = dist.entropy() * valid_flat
 
 ```python
 # [Critic Loss]
-                    # 计算 Critic 预测值
-                    # 这是 Critic 网络在当前参数下，对特定状态-动作组合（s, a）所做出的长期价值预测
-                    q_pred_seq = self._forward_network_sequence(
-                        self.critic,
-                        mb_obs[:, :, i], mb_obs, mb_masks[:, :, i], mb_keys, h_init_mb,
-                        local_act=mb_acts_oh[:, :, i], global_act=mb_acts_oh
-                    )
-                    q_flat = q_pred_seq.reshape(-1)
-                    # Q_target是使用贝尔曼方程构造出来的、一个更可靠的、相对准确的价值估计
-                    ret_flat = mb_ret[:, :, i].reshape(-1)
+            # 计算 Critic 预测值
+            # 这是 Critic 网络在当前参数下，对特定状态-动作组合（s, a）所做出的长期价值预测
+            q_pred_seq = self._forward_network_sequence(
+                self.critic,
+                mb_obs[:, :, i], mb_obs, mb_masks[:, :, i], mb_keys, h_init_mb,
+                local_act=mb_acts_oh[:, :, i], global_act=mb_acts_oh
+            )
+            q_flat = q_pred_seq.reshape(-1)
+            # Q_target是使用贝尔曼方程构造出来的、一个更可靠的、相对准确的价值估计
+            ret_flat = mb_ret[:, :, i].reshape(-1)
 
-                    # 均方误差 MSE Loss: (Q_pred - Q_target)^2
-                    crit_loss = F.mse_loss(q_flat, ret_flat, reduction='none') * valid_flat
+            # 均方误差 MSE Loss: (Q_pred - Q_target)^2
+            crit_loss = F.mse_loss(q_flat, ret_flat, reduction='none') * valid_flat
 
-                    # 总 Loss = Policy Loss + Critic Loss - Entropy
-                    loss_scalar += (act_loss.sum() + 0.5 * crit_loss.sum() - entropy_coef * ent_loss.sum())
+            # 总 Loss = Policy Loss + Critic Loss - Entropy
+            loss_scalar += (act_loss.sum() + 0.5 * crit_loss.sum() - entropy_coef * ent_loss.sum())
 
-                # 计算平均 Loss (除以有效样本数)
-                valid_sum = mb_valid.sum() + 1e-8
-                final_loss = loss_scalar / valid_sum
+        # 计算平均 Loss (除以有效样本数)
+        valid_sum = mb_valid.sum() + 1e-8
+        final_loss = loss_scalar / valid_sum
 
-                # 反向传播
-                self.optimizer.zero_grad()  # 清空旧梯度
-                final_loss.backward()  # 计算新梯度
+        # 反向传播
+        self.optimizer.zero_grad()  # 清空旧梯度
+        final_loss.backward()  # 计算新梯度
 
-                # torch.nn.utils.clip_grad_norm_: 梯度裁剪
-                # 如果梯度向量的范数超过 10.0，则按比例缩小，防止梯度爆炸 (Exploding Gradients)
-                torch.nn.utils.clip_grad_norm_(self.critic.parameters(), 10.0)
-                for actor in self.actors:
-                    torch.nn.utils.clip_grad_norm_(actor.parameters(), 10.0)
+        # torch.nn.utils.clip_grad_norm_: 梯度裁剪
+        # 如果梯度向量的范数超过 10.0，则按比例缩小，防止梯度爆炸 (Exploding Gradients)
+        torch.nn.utils.clip_grad_norm_(self.critic.parameters(), 10.0)
+        for actor in self.actors:
+            torch.nn.utils.clip_grad_norm_(actor.parameters(), 10.0)
 
-                self.optimizer.step()  # 更新参数，根据梯度调整Actor和Critic网络中的所有权重，即根据loss的数值改变各个动作的概率，核心！！！
-                total_loss_log += final_loss.item()
+        self.optimizer.step()  # 更新参数，根据梯度调整Actor和Critic网络中的所有权重，即根据loss的数值改变各个动作的概率，核心！！！
+        total_loss_log += final_loss.item()
 
-        # 返回平均 Loss 用于日志
-        return total_loss_log / (self.ppo_epoch * (BatchSize / self.mini_batch_size))
+# 返回平均 Loss 用于日志
+return total_loss_log / (self.ppo_epoch * (BatchSize / self.mini_batch_size))
 ```
