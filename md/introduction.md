@@ -623,12 +623,9 @@ PPO 的精髓在于“稳”。
 $$r_i = \frac{\pi_i(a_i | o_i)}{\pi_i^{old}(a_i | o_i)}$$
 
 (7)
-$$
-\begin{aligned}
-\eta^{MAPPO} &= \frac{1}{N} \sum_{i}^{N} E_{\vec{a}^t, s^t \sim \pi^{old}}[\min(r_i A^{old}, \text{clip}(r_i, 1 - \epsilon, 1 + \epsilon) A^{\pi^{old}})] \\
-&= \frac{1}{N} \sum_{i}^{N} E_{\vec{a}^t, s^t \sim \pi^{old}}[f(r(\theta_i)), A^{\pi^{old}}(s, a)]
-\end{aligned}
-$$
+$$\eta^{MAPPO} = \frac{1}{N} \sum_{i}^{N} E_{\vec{a}^t, s^t \sim \pi^{old}}[\min(r_i A^{old}, \text{clip}(r_i, 1 - \epsilon, 1 + \epsilon) A^{\pi^{old}})]$$
+
+$$= \frac{1}{N} \sum_{i}^{N} E_{\vec{a}^t, s^t \sim \pi^{old}}[f(r(\theta_i)), A^{\pi^{old}}(s, a)]$$
 
 其中 $f(r(\theta_i)), A^{\pi^{old}}(s, a) = \min(r_i A^{old}, \text{clip}(r_i, 1 - \epsilon, 1 + \epsilon) A^{\pi^{old}})$。
 
