@@ -653,7 +653,7 @@ ent_loss = dist.entropy() * valid_flat
 **Entropy Loss**：减去熵（鼓励探索，防止过早陷入死板的策略）。
 
 ```python
-# [Critic Loss]
+            # [Critic Loss]
             # 计算 Critic 预测值
             # 这是 Critic 网络在当前参数下，对特定状态-动作组合（s, a）所做出的长期价值预测
             q_pred_seq = self._forward_network_sequence(
