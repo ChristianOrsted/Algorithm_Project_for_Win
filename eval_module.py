@@ -12,6 +12,10 @@ os.environ["SC2PATH"] = "D:\Program Files (x86)\StarCraft II"
 
 
 def evaluate_model(model_path, map_name="1c3s5z", n_episodes=50):
+    """
+    评估模型性能
+    :param n_episodes: 评估局数，默认改为 50
+    """
     # 检查模型文件是否存在
     if not os.path.exists(model_path):
         print(f"模型文件不存在: {model_path}")
@@ -118,13 +122,14 @@ def evaluate_model(model_path, map_name="1c3s5z", n_episodes=50):
 
 
 if __name__ == "__main__":
-    # 评估最佳模型
+    # 评估最佳模型 (50局)
     print("\n" + "=" * 50)
     print("正在评估 Best Model (50局) ...")
     wr, rew = evaluate_model("best_model.pt", n_episodes=50)
     print(f"\nBest Model 结果: 胜率 {wr * 100:.1f}% ({int(wr * 50)}/50) | 平均分 {rew:.2f}")
 
-    # 评估最新存档
+    # 评估最新存档 (50局)
+    # 如果您只想评测其中一个，可以注释掉下面这段
     print("\n" + "=" * 50)
     print("正在评估 Latest Checkpoint (50局) ...")
     wr, rew = evaluate_model("checkpoints/ckpt_latest.pt", n_episodes=50)

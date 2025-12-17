@@ -9,10 +9,17 @@ from weak_tie_module import WeakTieGraph
 
 # 过滤警告并设置 SC2 路径
 warnings.filterwarnings('ignore', category=FutureWarning)
-os.environ["SC2PATH"] = "D:\\Program Files (x86)\\StarCraft II"
+os.environ["SC2PATH"] = "C:\Program Files (x86)\StarCraft II"
 
 
 def watch_agent_play(model_path, map_name="1c3s5z", n_episodes=3, step_delay=0.5):
+    """
+    可视化观看智能体对局
+    :param model_path: 模型路径
+    :param map_name: 地图名称
+    :param n_episodes: 观看局数
+    :param step_delay: 每步之间的延迟（秒），调整这个值来控制速度
+    """
     # 检查模型文件是否存在
     if not os.path.exists(model_path):
         print(f"模型文件不存在: {model_path}")
@@ -97,7 +104,7 @@ def watch_agent_play(model_path, map_name="1c3s5z", n_episodes=3, step_delay=0.5
                 )
                 
                 # 打印详细信息
-                print(f"\n步数: {step}")
+                print(f"\n📍 步数: {step}")
                 print(f"   存活单位: {alive_count}/{n_agents}")
                 print(f"   关键智能体: Agent {key_agent_idx}")
                 
@@ -131,7 +138,7 @@ def watch_agent_play(model_path, map_name="1c3s5z", n_episodes=3, step_delay=0.5
             
             # 统计结果
             is_win = info.get('battle_won', False)
-            result_emoji = "🏆 胜利" if is_win else "失败"
+            result_emoji = "胜利" if is_win else "❌ 失败"
             
             print(f"\n{'='*60}")
             print(f"第 {ep + 1} 局结果: {result_emoji}")
@@ -140,7 +147,7 @@ def watch_agent_play(model_path, map_name="1c3s5z", n_episodes=3, step_delay=0.5
             print(f"{'='*60}\n")
             
             if ep < n_episodes - 1:
-                print("准备下一局...\n")
+                print("⏳ 准备下一局...\n")
                 time.sleep(2)  # 局间暂停2秒
 
     env.close()
