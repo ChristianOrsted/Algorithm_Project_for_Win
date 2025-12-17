@@ -84,7 +84,15 @@ pysc2_env\Scripts\activate
 ```bash
 pip install torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu121
 
-pip install -r requirements.txt
+pip install -r requirements_for_gpu.txt
+```
+
+If you do not have an independent GPU, try instructions listed as followed:
+
+```bash
+pip install torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cpu
+
+pip install -r requirements_for_cpu.txt
 ```
 
 ### Step 4: Install StarCraft II
@@ -101,6 +109,17 @@ python install_map.py
 ---
 
 ## Quick Start
+
+### Change the path according to your environment
+
+```
+install_map.py
+eval_module.py
+replay_model.py
+test_1000.py
+```
+
+Path of SC2 in files metioned above need to be changed according to your environment.
 
 ### Train on 1c3s5z Map
 

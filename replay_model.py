@@ -9,17 +9,10 @@ from weak_tie_module import WeakTieGraph
 
 # 过滤警告并设置 SC2 路径
 warnings.filterwarnings('ignore', category=FutureWarning)
-os.environ["SC2PATH"] = "C:\Program Files (x86)\StarCraft II"
+os.environ["SC2PATH"] = "D:\Program Files (x86)\StarCraft II"
 
 
 def watch_agent_play(model_path, map_name="1c3s5z", n_episodes=3, step_delay=0.5):
-    """
-    可视化观看智能体对局
-    :param model_path: 模型路径
-    :param map_name: 地图名称
-    :param n_episodes: 观看局数
-    :param step_delay: 每步之间的延迟（秒），调整这个值来控制速度
-    """
     # 检查模型文件是否存在
     if not os.path.exists(model_path):
         print(f"模型文件不存在: {model_path}")
