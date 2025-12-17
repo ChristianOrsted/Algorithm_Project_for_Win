@@ -285,7 +285,6 @@ reward, terminated, info = env.step(actions)
 (8)
 $$
 s_{strength} = 1/(D_i + D_j + W_{i,j} - 2)
-
 $$
 
 **代码体现**：denominator = D_i + D_j + W_ij - 2，然后取倒数 1.0 / denominator。这完全对应论文中的公式 (8)。
